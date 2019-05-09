@@ -1,48 +1,50 @@
 from json import JSONDecodeError
+from .BasicAPI import BasicAPI
+from .normalize_company_name import normalize_company_name
 
 try:
 	from slytherin.collections import rename_dict_keys
 except:
 	from .rename_dict_keys import rename_dict_keys
 
-from .BasicAPI import BasicAPI
-from .normalize_company_name import normalize_company_name
 
 class Bing(BasicAPI):
 	def __init__(self):
 		super().__init__(tokens=None, name='bing', wait_time=0.1)
 
-	def url_func(self, name):
+	@staticmethod
+	def url_func(name):
 		return f'https://finance.services.appex.bing.com/Market.svc/MTAutocomplete?q={name}&locale=en%3Aus'
 
-	def convert_name_response_to_dicts(self, response, simplified=True):
+	def convert_name_response_to_dicts(self, response):
 		mapping = {
-			'DisplayName':'display_name',
-			'FriendlyName':'friendly_name',
-			'RT00S':'other_name',
-			'OS01W':'full_name_1',
-			'OS0LN':'full_name_2',
-			'RT0SN':'full_name_3',
-			'OS001':'ticker',
-			'AC040':'exchange',
-			'LS01Z':'exchange_code',
-			'RT0EC':'country_code',
-			'OS01V':'language',
-			'SecId':'sector_id',
-			'ExMicCode':'primary_quote_mic',
-			'FullInstrument':'full_instrument',
+			'DisplayName': 'display_name',
+			'FriendlyName': 'friendly_name',
+			'RT00S': 'other_name',
+			'OS01W': 'full_name_1',
+			'OS0LN': 'full_name_2',
+			'RT0SN': 'full_name_3',
+			'OS001': 'ticker',
+			'AC040': 'exchange',
+			'LS01Z': 'exchange_code',
+			'RT0EC': 'country_code',
+			'OS01V': 'language',
+			'SecId': 'sector_id',
+			'ExMicCode': 'primary_quote_mic',
+			'FullInstrument': 'full_instrument',
 			'OS05J': 'isin'
 		}
+
 		def _format_dictionary(d):
 			result = rename_dict_keys(dictionary=d, mapping=mapping)
-			result = {key.lower():value for key, value in result.items()}
+			result = {key.lower(): value for key, value in result.items()}
 			result['api_name'] = self.name
 			return result
 
 		try:
 			list_of_dictionaries = response.json()['data'].copy()
 		except JSONDecodeError as e:
-			self.append_exception({'func':'convert_name_response_to_dicts', 'exception': e})
+			self.append_exception({'func': 'convert_name_response_to_dicts', 'exception': e})
 			return []
 
 		return [_format_dictionary(dictionary) for dictionary in list_of_dictionaries]
@@ -51,18 +53,18 @@ class Bing(BasicAPI):
 		echo = max(0, echo)
 		normalized_name = normalize_company_name(name=name)
 
-		def _condition_func(response):
-			if response is None:
+		def _condition_func(_response):
+			if _response is None:
 				return False
 			else:
 				try:
-					x = response.json()['data']
+					_ = _response.json()['data']
 					return True
 				except:
 					return False
 
 		response = self.send_request(
-			url_func=self.url_func, request_name='search_name', hashed_args={'name':normalized_name},
+			url_func=self.url_func, request_name='search_name', hashed_args={'name': normalized_name},
 			condition_func=_condition_func, echo=echo
 		)
 		if convert_response:
@@ -74,7 +76,10 @@ class Bing(BasicAPI):
 		else:
 			return response
 
-	def search(self, name=None, ticker=None, country_code=None, exchange_code=None, greedy=True, add_query_values=False, echo=0):
+	def search(
+			self, name=None, ticker=None, country_code=None, exchange_code=None,
+			greedy=True, add_query_values=False, echo=0
+	):
 		echo = max(0, echo)
 
 		if name is None and ticker is None:

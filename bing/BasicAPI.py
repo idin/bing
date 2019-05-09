@@ -1,19 +1,18 @@
 import warnings
 import requests
-
-
 from memoria import Box, Cache
-from route import get_path
+from disk import get_path
 from chronology import get_elapsed_seconds, get_now, get_today_str, sleep
 
-class BasicAPI:
-	def __init__(self, tokens, name, dir=None, wait_time=0.3):
 
-		self._cache = Cache(path=get_path(dir=dir, file=f'{name}_cache'), num_tries=3)
+class BasicAPI:
+	def __init__(self, tokens, name, directory=None, wait_time=0.3):
+
+		self._cache = Cache(path=get_path(directory=directory, file=f'{name}_cache'), num_tries=3)
 
 		self._tokens = tokens
 		if tokens is not None:
-			self._token_box = Box(path=get_path(dir=dir, file=f'{name}_tokens'))
+			self._token_box = Box(path=get_path(directory=directory, file=f'{name}_tokens'))
 			if not self._token_box.contains('usage'):
 				self._token_box.put(name='usage', obj={})
 
@@ -69,19 +68,20 @@ class BasicAPI:
 		:type echo: int
 		"""
 		echo = max(0, echo)
-		if echo: print(f'requesting: "{url}"')
+		if echo:
+			print(f'requesting: "{url}"')
+
 		elapsed = get_elapsed_seconds(start=self._last_request_time)
-		if elapsed  < self._wait_time:
+		if elapsed < self._wait_time:
 			sleep(seconds=max(0, self._wait_time - elapsed))
+
 		try:
 			with warnings.catch_warnings():
 				warnings.simplefilter("ignore")
 				response = requests.get(url=url, verify=verify)
+
 		except Exception as e:
-			#print(colour(
-			#	text=f'PA Warning: received an error for url:"{url}"', text_colour='red', background_colour='black'
-			#))
-			self.append_exception({'func':'send_url_request', 'url':url, 'exception':e})
+			self.append_exception({'func': 'send_url_request', 'url': url, 'exception': e})
 			response = None
 
 		self._last_request_time = get_now()
@@ -109,7 +109,8 @@ class BasicAPI:
 		else:
 			token = None
 
-		def _request_func(**kwargs): return self.send_url_request(url=url_func(**kwargs), token=token, echo=echo)
+		def _request_func(**_kwargs):
+			return self.send_url_request(url=url_func(**_kwargs), token=token, echo=echo)
 
 		if not cache:
 			kwargs = unhashed_args.copy()

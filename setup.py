@@ -29,7 +29,7 @@ setup(
 	],
 
 	packages=find_packages(exclude=["jupyter_tests", ".idea", ".git"]),
-	install_requires=[],
+	install_requires=['requests', 'memoria', 'chronology', 'disk'],
 	python_requires='~=3.6',
 	zip_safe=False
 )
